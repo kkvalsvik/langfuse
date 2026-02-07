@@ -1,0 +1,30 @@
+# BidBuddy override — adds nginx reverse proxy with SSL
+# This file is auto-merged by `docker compose up` alongside docker-compose.yml
+# Keeps upstream docker-compose.yml untouched for easy `git pull upstream main`
+
+services:
+  # Nginx reverse proxy with SSL termination
+  nginx:
+    image: nginx:stable-alpine
+    container_name: langfuse-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /root/ssl:/etc/letsencrypt:ro
+      - /var/www/html:/var/www/html
+    depends_on:
+      langfuse-web:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Bind langfuse-web to localhost only (nginx handles external traffic)
+  langfuse-web:
+    ports:
+      - "127.0.0.1:3000:3000"
